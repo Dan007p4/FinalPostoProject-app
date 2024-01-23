@@ -111,7 +111,7 @@ if(((st.session_state.Login2 == 0) | (st.session_state.Login2 == 3))):
 
     logins_Pass = c.fetchall()
 
-    salt = b'$2b$12$9FEmZ.X34ET241I6wiYPze'
+    salt = st.secrets["salt"]
 
     test = bcrypt.hashpw(password.encode('utf-8'), salt)
     new = bcrypt.hashpw(password.encode('utf-8'), salt)
