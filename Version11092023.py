@@ -110,8 +110,13 @@ if(((st.session_state.Login2 == 0) | (st.session_state.Login2 == 3))):
         "SELECT SENHA_LOGIN FROM TABELA_LOGINS_POSTO WHERE NOME_LOGIN ='" + str(user)+"';")
 
     logins_Pass = c.fetchall()
-
     salt = st.secrets["salt"]
+    # Remover o prefixo 'b' e as aspas simples
+    cleaned_string = salt[2:-1]
+    
+    # Converter a string limpa de volta para bytes
+    salt = cleaned_string.encode()
+    
 
     test = bcrypt.hashpw(password.encode('utf-8'), salt)
     new = bcrypt.hashpw(password.encode('utf-8'), salt)
