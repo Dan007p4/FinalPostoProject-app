@@ -1499,7 +1499,7 @@ if(st.session_state.Login2 == 1):
                 st.session_state.menu_gerenciar_logins = 5
                 st.experimental_rerun()
 
-            AddPartes = st.button("Adicionar partes do corpo")
+            AddPartes = st.button("Adicionar etiologia")
             if AddPartes:
                 st.session_state.menu_gerenciar_logins = 6
                 st.experimental_rerun()
@@ -1514,7 +1514,7 @@ if(st.session_state.Login2 == 1):
                 st.session_state.menu_gerenciar_logins = 8
                 st.experimental_rerun()
 
-            DeletePartes = st.button("Deletar partes do corpo")
+            DeletePartes = st.button("Deletar etiologia")
             if DeletePartes:
                 st.session_state.menu_gerenciar_logins = 9
                 st.experimental_rerun()
