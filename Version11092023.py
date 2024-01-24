@@ -165,7 +165,13 @@ if(((st.session_state.Login2 == 0) | (st.session_state.Login2 == 3))):
 
 ##CRIANDO MENU##
 
-salt = b'$2b$12$9FEmZ.X34ET241I6wiYPze'
+salt = st.secrets["salt"]
+    # Remover o prefixo 'b' e as aspas simples
+cleaned_string = salt[2:-1]
+    
+    # Converter a string limpa de volta para bytes
+salt = cleaned_string.encode()
+
 def Clean_Names(name):
     name = str(name)
     name = unidecode.unidecode(name)
@@ -1489,10 +1495,6 @@ if(st.session_state.Login2 == 1):
                 st.session_state.menu_gerenciar_logins = 2
                 st.experimental_rerun()
 
-            TransferPacient = st.button("Transferir pacientes entre unidades")
-            if TransferPacient:
-                st.session_state.menu_gerenciar_logins = 4
-                st.experimental_rerun()
 
             AddCobertura = st.button("Adicionar cobertura")
             if AddCobertura:
@@ -1576,58 +1578,7 @@ if(st.session_state.Login2 == 1):
                 st.session_state.menu_gerenciar_logins = 0
                 st.experimental_rerun()
 
-        if st.session_state.menu_gerenciar_logins == 4:
-            st.title("Transferir pacientes entre unidades")
-            c.execute(
-            "SELECT UNIDADE_NOME FROM TABELA_LOGINS_POSTO;")
-            tables = c.fetchall()
-            list_tables =[]
-            for i in tables:
-                value = i[0]
-                list_tables.append(value)
-            unidade = st.selectbox("Selecione a Unidade",list_tables)
-            c.execute(
-            "SELECT ID_UNIDADE FROM TABELA_LOGINS_POSTO WHERE UNIDADE_NOME = '"+ str(unidade) +"' ;")
-            id_unidade = c.fetchall()
-            c.execute(
-                "SELECT NOME FROM TABELA_PACIENTES_POSTO WHERE ID_UNIDADE = "+ str(id_unidade[0][0]) +" AND STATUS = 'ATIVO';")
-            
-            list_tables =[]
-            tables = c.fetchall()
-            for i in tables:
-                value = i[0]
-                list_tables.append(value)
-            paciente = st.selectbox("Selecione o paciente que deseja transferir",list_tables)
 
-            c.execute("SELECT CNS,ID_PACIENTE FROM TABELA_PACIENTES_POSTO WHERE NOME = '" + str(paciente) + "';")
-            cns = c.fetchall()
-            st.subheader("CNS do paciente: "+str(cns[0][0]))
-            c.execute(
-            "SELECT UNIDADE_NOME FROM TABELA_LOGINS_POSTO;")
-            tables = c.fetchall()
-            list_tables =[]
-            for i in tables:
-                value = i[0]
-                list_tables.append(value)
-            list_tables.remove(unidade)
-            unidade = st.selectbox("Selecione a Unidade para qual vai trasnferir",list_tables)
-            c.execute(
-            "SELECT ID_UNIDADE FROM TABELA_LOGINS_POSTO WHERE UNIDADE_NOME = '"+ str(unidade) +"' ;")
-            id_unidade = c.fetchall()
-
-
-            transferencia = st.button("Transferir")
-            if transferencia:
-                c.execute("UPDATE TABELA_PACIENTES_POSTO SET ID_UNIDADE="+ str(id_unidade[0][0])+" WHERE CNS = "+str(cns[0][0])+" ;")
-                connection.commit()
-                c.execute("UPDATE TABELA_PROCESSOS_POSTO SET ID_UNIDADE="+ str(id_unidade[0][0])+" WHERE ID_PACIENTE= "+str(cns[0][1])+" ;")
-                connection.commit()
-                st.write(":green[Paciente trasnferido com sucesso!]")
-                
-            cancel = st.button("Voltar")
-            if cancel:
-                st.session_state.menu_gerenciar_logins = 0
-                st.experimental_rerun()
 
         if st.session_state.menu_gerenciar_logins == 2:
             st.title("Excluir login")
@@ -1944,6 +1895,11 @@ if(st.session_state.Login2 == 2):
             if add_paciente:
                 st.session_state['state_pacientes'] = 1
                 st.experimental_rerun()
+            
+            TransferPacient = st.button("Transferir pacientes entre unidades")
+            if TransferPacient:
+                st.session_state['state_pacientes'] = 4
+                st.experimental_rerun()
 
             remove_paciente = st.button("Excluir paciente")
             if remove_paciente:
@@ -1954,6 +1910,85 @@ if(st.session_state.Login2 == 2):
             if verify_paciente:
                 st.session_state['state_pacientes'] = 3
                 st.experimental_rerun()
+
+                
+        if st.session_state['state_pacientes'] == 4:
+            st.title("Pesquisar paciente")
+            # c.execute(
+            # "SELECT UNIDADE_NOME FROM TABELA_LOGINS_POSTO;")
+            # tables = c.fetchall()
+            # list_tables =[]
+            # for i in tables:
+            #     value = i[0]
+            #     list_tables.append(value)
+            # unidade = st.selectbox("Selecione a Unidade",list_tables)
+            # c.execute(
+            # "SELECT ID_UNIDADE FROM TABELA_LOGINS_POSTO WHERE UNIDADE_NOME = '"+ str(unidade) +"' ;")
+            # id_unidade = c.fetchall()
+            id_unidade = str(cookie_manager.get(cookie=cookiee)).split("|")[1]
+
+            c.execute("SELECT NOME,ID_UNIDADE FROM TABELA_PACIENTES_POSTO WHERE STATUS = 'ATIVO';")
+            
+            list_tables =[]
+            tables = c.fetchall()
+            for i in tables:
+                value = i[0]
+                list_tables.append(value)
+            paciente = st.selectbox("Selecione o paciente que deseja verificar a unidade",list_tables)
+            c.execute("SELECT CNS,ID_PACIENTE FROM TABELA_PACIENTES_POSTO WHERE NOME = '" + str(paciente) + "';")
+            cns = c.fetchall()
+            st.subheader("CNS do paciente: "+str(cns[0][0]))
+
+            c.execute("SELECT ID_UNIDADE FROM TABELA_PACIENTES_POSTO WHERE NOME = '" + str(paciente) + "';")
+            uni = c.fetchall()
+            c.execute("SELECT UNIDADE_NOME FROM TABELA_LOGINS_POSTO WHERE ID_UNIDADE = " + str(uni[0][0]) + ";")
+            uni = c.fetchall()
+            st.subheader("Unidade do paciente: "+str(uni[0][0]))
+            st.divider()
+            st.title("Transferir pacientes entre unidades")
+            c.execute(
+                "SELECT NOME FROM TABELA_PACIENTES_POSTO WHERE ID_UNIDADE = "+ str(id_unidade[0][0]) +" AND STATUS = 'ATIVO';")
+            
+            list_tables =[]
+            tables = c.fetchall()
+            for i in tables:
+                value = i[0]
+                list_tables.append(value)
+            if len(list_tables) ==0:
+                st.error("Sua unidade não tem pacientes")
+            else:
+
+                paciente = st.selectbox("Selecione o paciente que deseja transferir",list_tables)
+
+                c.execute("SELECT CNS,ID_PACIENTE FROM TABELA_PACIENTES_POSTO WHERE NOME = '" + str(paciente) + "';")
+                cns = c.fetchall()
+                st.subheader("CNS do paciente: "+str(cns[0][0]))
+                c.execute(
+                "SELECT UNIDADE_NOME FROM TABELA_LOGINS_POSTO;")
+                tables = c.fetchall()
+                list_tables =[]
+                for i in tables:
+                    value = i[0]
+                    list_tables.append(value)
+                list_tables.remove(unidade)
+                unidade = st.selectbox("Selecione a Unidade para qual vai trasnferir",list_tables)
+                c.execute(
+                "SELECT ID_UNIDADE FROM TABELA_LOGINS_POSTO WHERE UNIDADE_NOME = '"+ str(unidade) +"' ;")
+                id_unidade = c.fetchall()
+
+
+                transferencia = st.button("Transferir")
+                if transferencia:
+                    c.execute("UPDATE TABELA_PACIENTES_POSTO SET ID_UNIDADE="+ str(id_unidade[0][0])+" WHERE CNS = "+str(cns[0][0])+" ;")
+                    connection.commit()
+                    c.execute("UPDATE TABELA_PROCESSOS_POSTO SET ID_UNIDADE="+ str(id_unidade[0][0])+" WHERE ID_PACIENTE= "+str(cns[0][1])+" ;")
+                    connection.commit()
+                    st.write(":green[Paciente trasnferido com sucesso!]")
+                    
+            cancel = st.button("Voltar")
+            if cancel:
+                    st.session_state['state_pacientes'] = 0
+                    st.experimental_rerun()
 
         if st.session_state['state_pacientes'] == 1:
 
