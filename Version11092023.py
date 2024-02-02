@@ -1648,7 +1648,6 @@ if(st.session_state.Login2 == 1):
             name =st.text_input("Insira o nome da local da lesão")
             enviar = st.button("Enviar")
             cancel = st.button("Voltar")
-            enviar = st.button("Enviar")
             if enviar:
                     c.execute("INSERT INTO TABELA_LOCAIS_LESAO (NOME_LOCAL_LESAO) VALUES ('"+str(name)+"');")
                     connection.commit()
