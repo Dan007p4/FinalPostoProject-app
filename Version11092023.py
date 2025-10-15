@@ -1,12 +1,12 @@
 import pandas as pd
 import streamlit as st
 from streamlit_option_menu import option_menu
-import streamlit_authenticator as stauth
+import streamlit_authenticator as stauth  # (não é usado aqui, mas mantive se quiser reaproveitar depois)
 import yaml
 import xlrd
-import mysql.connector
+# import mysql.connector  # REMOVIDO
 from yaml.loader import SafeLoader
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine  # (não é usado aqui, mas mantive se quiser reaproveitar depois)
 import seaborn as sns
 import matplotlib.pyplot as plt
 import unidecode
@@ -19,30 +19,19 @@ import extra_streamlit_components as stx
 from pyxlsb import open_workbook as open_xlsb
 from datetime import datetime, timedelta
 from streamlit_cookies_manager import EncryptedCookieManager
-import bcrypt
+import bcrypt  # (não é usado aqui, mas mantive se quiser reaproveitar depois)
 import math
 import calendar
-import time
+# import time  # import duplicado removido
 from fpdf import FPDF
 import base64
 
-
 st.set_page_config(page_icon="🏥", page_title="Gerenciador de dados")
-##FAZENDO CONEXÃO COM O DB##
 
-connection = mysql.connector.connect(
-    host="aws.connect.psdb.cloud",
-    user=st.secrets["db_username"],
-    passwd=st.secrets["db_password"],
+# === REMOVIDO: CONEXÃO COM DB ===
+# connection = mysql.connector.connect(...)
+# c = connection.cursor()
 
-    db="database",
-    ssl_ca="cacert-2023-01-10.pem"
-
-
-)
-
-
-c = connection.cursor()
 hide_st_style = """
              <style>
              #MainMenu {visibility: hidden;}
@@ -55,50 +44,41 @@ st.markdown(hide_st_style, unsafe_allow_html=True)
 def get_manager():
     return stx.CookieManager()
 
-
 cookie_manager = get_manager()
 cookiee = "ActualUser"
 
 if 'Login2' not in st.session_state:
     st.session_state['Login2'] = 0
 
-
 if 'ActualUser' not in st.session_state:
-    st.session_state['ActualUser'] = 0
+    st.session_state['ActualUser'] = ""
 
-# cookie_manager.set(cookiee, None, expires_at=datetime.now() + timedelta(days=30))
-
-
-if((cookie_manager.get(cookie=cookiee)) == 'null'):
+# Se não houver cookie ou for 'null', volta para não logado
+if ((cookie_manager.get(cookie=cookiee)) == 'null'):
     st.session_state.Login2 = 0
 
-if ((cookie_manager.get(cookie=cookiee)) != 'null'):
-    if((str(cookie_manager.get(cookie=cookiee)).split("|")[0]) == "0"):  
-        st.session_state.Login2 = 0
+# Se tiver cookie, tenta restaurar estado
+cookie_val = cookie_manager.get(cookie=cookiee)
+if (cookie_val != 'null'):
+    parts = str(cookie_val).split("|")
+    if len(parts) >= 1:
+        level = parts[0]
+        if level in ["0", "1", "2", "3"]:
+            st.session_state.Login2 = int(level)
+        else:
+            st.session_state.Login2 = 0
+    if len(parts) >= 2:
+        st.session_state['ActualUser'] = parts[1]
+    elif len(parts) == 1:
+        st.session_state['ActualUser'] = parts[0]
 
-    if((str(cookie_manager.get(cookie=cookiee)).split("|")[0]) == "1"):
-        st.session_state.Login2 = 1
-
-    if((str(cookie_manager.get(cookie=cookiee)).split("|")[0]) == "2"):
-        st.session_state.Login2 = 2
-    if (len(str(cookie_manager.get( cookie=cookiee)).split("|")) == 1 ):
-        st.session_state['ActualUser'] = str(cookie_manager.get(
-            cookie=cookiee)).split("|")[0]
-    else:
-        st.session_state['ActualUser'] = str(cookie_manager.get(
-            cookie=cookiee)).split("|")[1]
-    
-
-if(((st.session_state.Login2 == 0) | (st.session_state.Login2 == 3))):
-    # st.write(cookie_manager.get(cookie= cookiee))
-    # st.write(st.session_state.Login2)
-
-    cookie = "ActualUser"
-    date_current = datetime.now()
+# ===== TELA DE LOGIN (sem DB, sempre entra como nível 1) =====
+if ((st.session_state.Login2 == 0) | (st.session_state.Login2 == 3)):
     st.title("Login")
 
     user = st.text_input("Usuário")
     password = st.text_input("Senha", type="password")
+
     css = '''
             <style>
             [class="css-1li7dat effi0qh1"]{visibility: hidden;}
@@ -108,69 +88,27 @@ if(((st.session_state.Login2 == 0) | (st.session_state.Login2 == 3))):
 
     butt = st.button("Login")
 
-    c.execute(
-        "SELECT NOME_LOGIN FROM TABELA_LOGINS_POSTO ;")
-
-    logins_Name = c.fetchall()
-
-    c.execute(
-        "SELECT SENHA_LOGIN FROM TABELA_LOGINS_POSTO WHERE NOME_LOGIN ='" + str(user)+"';")
-
-    logins_Pass = c.fetchall()
-    salt = st.secrets["salt"]
-    # Remover o prefixo 'b' e as aspas simples
-    cleaned_string = salt[2:-1]
-    
-    # Converter a string limpa de volta para bytes
-    salt = cleaned_string.encode()
-    
-
-    test = bcrypt.hashpw(password.encode('utf-8'), salt)
-    new = bcrypt.hashpw(password.encode('utf-8'), salt)
-    verify = False
-    count = -1
     if butt:
-        if len(logins_Pass) != 0:
+        # Sem DB: apenas valida preenchimento
+        if user.strip() != "" and password.strip() != "":
+            # Entra direto com permissão 1
+            st.session_state.Login2 = 1
+            st.session_state.ActualUser = user.strip()
 
-            for i in logins_Name:
-                if verify != True:
-                    count = count+1
-                    if((str(user) == str(i[0])) & (str(test).replace("'",":") == str(logins_Pass[0][0]))):
-                        verify = True
-                    else:
-                        verify = False
+            # salva cookie no formato "nivel|usuario"
+            cookie_manager.set(cookiee, f"1|{st.session_state.ActualUser}",
+                               expires_at=datetime.now() + timedelta(days=5))
 
-            if(verify == True):
-                c.execute(
-                    "SELECT NIVEL_PERMISSAO FROM TABELA_LOGINS_POSTO WHERE NOME_LOGIN ='" + str(user)+"';")
-
-                logins_Perm = c.fetchall()
-                st.session_state.Login2 = int(logins_Perm[0][0])
-
-                c.execute(
-                    "SELECT ID_UNIDADE FROM TABELA_LOGINS_POSTO WHERE NOME_LOGIN ='" + str(user)+"';")
-
-                logins_UserId = c.fetchall()
-                st.session_state.ActualUser = int(logins_UserId[0][0])
-
-                cookie_manager.set(cookie, str(
-                    logins_Perm[0][0])+"|"+str(logins_UserId[0][0]), expires_at=datetime.now() + timedelta(days=5))
-                time.sleep(1000)
-                st.experimental_rerun()
-            else:
-                st.session_state.Login2 = 3
+            # pequena pausa e recarrega a página
+            time.sleep(0.5)
+            st.experimental_rerun()
         else:
-            st.error('Senha ou Usuario esta incorreto')
+            st.error('Informe usuário e senha.')
 
+# ===== UTILITÁRIOS E FUNÇÕES AUXILIARES =====
 
-##CRIANDO MENU##
-
-salt = st.secrets["salt"]
-    # Remover o prefixo 'b' e as aspas simples
-cleaned_string = salt[2:-1]
-    
-    # Converter a string limpa de volta para bytes
-salt = cleaned_string.encode()
+# Removido uso de st.secrets["salt"] e hash, já que não há validação contra DB.
+# Mantive funções utilitárias usadas pelo restante do app.
 
 def Clean_Names(name):
     name = str(name)
@@ -178,9 +116,7 @@ def Clean_Names(name):
     name = name.replace(" ", '_')
     name = name.replace("/", '_')
     name = name.replace(".", '')
-
     return name
-
 
 def to_excel(df):
     output = BytesIO()
@@ -193,7 +129,6 @@ def to_excel(df):
     writer.close()
     processed_data = output.getvalue()
     return processed_data
-
 
 meses_dict = {
     "JANEIRO": "01",
@@ -210,15 +145,11 @@ meses_dict = {
     "DEZEMBRO": "12"
 }
 
-
 def LogOut():
     st.session_state.Login2 = 0
-    cookie_manager.set(
-        cookiee, None, expires_at=datetime.now() + timedelta(days=30))
-    time.sleep(1000)
-
+    cookie_manager.set(cookiee, None, expires_at=datetime.now() + timedelta(days=30))
+    time.sleep(0.2)
     st.experimental_rerun()
-
 
 def verificar_formato_data(data_string):
     caracteres_permitidos = ["0123456789-"]
@@ -231,21 +162,19 @@ def verificar_formato_data(data_string):
             return False
     return True
 
-
 def verificar_formato_CNS(data_string):
     caracteres_permitidos = ["0123456789"]
     for caractere in data_string:
         if caractere not in caracteres_permitidos[0]:
             st.error("CNS está contendo caracteres proibidos")
             return False
-        if data_string =="":
+        if data_string == "":
             return False
-        if data_string == None:
+        if data_string is None:
             return False
         if len(data_string) == 0:
-            return False 
+            return False
     return True
-
 
 def verificar_formato_nome(data_string):
     symbols_and_accents = [
@@ -259,28 +188,23 @@ def verificar_formato_nome(data_string):
         "Ù", "Û", "Ü", "v", "V", "w", "W", "x", "X", "y",
         "ý", "Y", "Ý", "z", "Z", "_", "", " ", "ç", "Ç"
     ]
-
     for caractere in data_string:
         if caractere not in symbols_and_accents:
             st.error("Nome está contendo caracteres proibidos")
             return False
-        if data_string =="":
+        if data_string == "":
             return False
-        if data_string == None:
+        if data_string is None:
             return False
         if str(len(data_string)) == "0":
-            return False 
+            return False
     return True
 
-def verificar_last_deleted(id):
-    c.execute("SELECT ULTIMO_DELETADO FROM LAST_DELETED_POSTO ORDER BY ID DESC LIMIT 1")
-    last_Deleted = c.fetchall()
-    if len(last_Deleted)>0:
-        if last_Deleted[0][0] == id:
-            LogOut()
-            
+def verificar_last_deleted(_id):
+    # Sem DB: não faz nada
+    return
 
-def verificar_formato_localOuEtio(data_string,value):
+def verificar_formato_localOuEtio(data_string, value):
     symbols_and_accents = [
         "a", "á", "A", "Á", "à", "â", "ã", "ä", "b", "B",
         "c", "C", "d", "D", "e", "é", "è", "ê", "ë", "E",
@@ -292,17 +216,16 @@ def verificar_formato_localOuEtio(data_string,value):
         "Ù", "Û", "Ü", "v", "V", "w", "W", "x", "X", "y",
         "ý", "Y", "Ý", "z", "Z", "_", "", " ", "ç", "Ç"
     ]
-
     for caractere in data_string:
         if caractere not in symbols_and_accents:
-            st.error(value+" está contendo caracteres proibidos")
+            st.error(value + " está contendo caracteres proibidos")
             return False
-        if data_string =="":
+        if data_string == "":
             return False
-        if data_string == None:
+        if data_string is None:
             return False
     if str(len(data_string)) == "0":
-        return False 
+        return False
     return True
 
 def verificar_campo_texto(data_string):
@@ -317,22 +240,19 @@ def verificar_campo_texto(data_string):
         "Ù", "Û", "Ü", "v", "V", "w", "W", "x", "X", "y",
         "ý", "Y", "Ý", "z", "Z", "_", "", " ", "ç", "Ç"
     ]
-
     for caractere in data_string:
         if caractere not in symbols_and_accents:
             return False
-        if data_string =="":
+        if data_string == "":
             return False
-        if data_string == None:
+        if data_string is None:
             return False
         if str(len(data_string)) == "0":
-            return False 
+            return False
     return True
 
+# Chamada mantida (agora é no-op)
 verificar_last_deleted(st.session_state.ActualUser)
-# st.write(cookie_manager.get(
-#         cookie=cookiee))
-# st.write(st.session_state.ActualUser)
 if(st.session_state.Login2 == 1):
     # authenticator.logout('Logout', 'main')
     with st.sidebar:
