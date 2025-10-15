@@ -259,7 +259,7 @@ if(st.session_state.Login2 == 1):
 
         selected = option_menu(
             menu_title="Menu",
-            options=["Gerenciador de dados", "Analise de dados","Gerenciar Logins"],
+            options=["Gerenciador de dados", "Analise de dados","Gerenciar Logins","Manipulador de dados"],
             menu_icon="border-width"
         )
 
@@ -2478,3 +2478,4 @@ elif st.session_state.Login2 == 3:
     st.error('Senha ou Usuario esta incorreto')
 elif st.session_state.Login2 == 0:
     st.warning('Insira respectivamente o usuario e a senha como solicitado')
+
